@@ -1,0 +1,133 @@
+/* Basic reset */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html, body {
+    height: 100%;
+    font-family: 'Arial', sans-serif;
+}
+
+body {
+    background: #0a0a0a;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+}
+
+/* Splash Page Styles */
+.splash-container {
+    position: relative;
+    height: 100vh;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-image: url('/img/bg.jpg'); /* Replace with your image URL */
+    background-size: cover;
+    background-position: center;
+    animation: fadeIn 2s ease-out;
+}
+
+/* Adding overlay with 70% opacity */
+.splash-container::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7); /* 70% opacity black overlay */
+    z-index: 1;
+}
+
+/* Fade-In animation */
+@keyframes fadeIn {
+    0% {
+        opacity: 0;
+    }
+    100% {
+        opacity: 1;
+    }
+}
+
+.content {
+    text-align: center;
+    color: white;
+    z-index: 10;
+    animation: fadeUp 1.5s ease-out;
+}
+
+/* Fade-Up animation */
+@keyframes fadeUp {
+    0% {
+        transform: translateY(50px);
+        opacity: 0;
+    }
+    100% {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.main-title {
+    font-size: 3.5rem;
+    margin-bottom: 10px;
+    font-weight: 600;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.6);
+    letter-spacing: 2px;
+}
+
+.sub-title {
+    font-size: 1.5rem;
+    font-weight: 300;
+    margin-bottom: 20px;
+    letter-spacing: 1px;
+    opacity: 0.8;
+}
+
+.button-container {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+}
+
+.cta-button {
+    font-size: 1.2rem;
+    padding: 15px 30px;
+    background-color: #ff4081;
+    color: white;
+    border: none;
+    border-radius: 30px;
+    cursor: pointer;
+    transition: transform 0.3s ease;
+    font-weight: 500;
+    letter-spacing: 1px;
+    width: 150px;
+}
+
+.cta-button:hover {
+    transform: scale(1.1);
+    background-color: #e81d6f;
+}
+
+/* Active Button State */
+.cta-button:active {
+    transform: scale(0.9);
+}
+
+@media (max-width: 768px) {
+    .main-title {
+        font-size: 2rem;
+    }
+    .sub-title {
+        font-size: 1rem;
+    }
+    .cta-button {
+        font-size: 1rem;
+        padding: 12px 25px;
+    }
+}
