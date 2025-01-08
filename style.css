@@ -26,9 +26,12 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
-    background-image: url('/img/bg.jpg'); /* Replace with your image URL */
+    /* Fixed background syntax and added fallbacks */
+    background: #0a0a0a url('/img/bg.jpg') no-repeat center center;
     background-size: cover;
-    background-position: center;
+    /* Added a gradient fallback in case image fails to load */
+    background-image: linear-gradient(rgba(10, 10, 10, 0.9), rgba(10, 10, 10, 0.7)),
+                      url('/img/bg.jpg');
     animation: fadeIn 2s ease-out;
 }
 
@@ -40,7 +43,7 @@ body {
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.7); /* 70% opacity black overlay */
+    background: rgba(0, 0, 0, 0.7);
     z-index: 1;
 }
 
@@ -59,6 +62,8 @@ body {
     color: white;
     z-index: 10;
     animation: fadeUp 1.5s ease-out;
+    /* Added padding for better mobile display */
+    padding: 0 20px;
 }
 
 /* Fade-Up animation */
@@ -74,7 +79,7 @@ body {
 }
 
 .main-title {
-    font-size: 3.5rem;
+    font-size: clamp(2rem, 5vw, 3.5rem); /* Responsive font size */
     margin-bottom: 10px;
     font-weight: 600;
     text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.6);
@@ -82,7 +87,7 @@ body {
 }
 
 .sub-title {
-    font-size: 1.5rem;
+    font-size: clamp(1rem, 3vw, 1.5rem); /* Responsive font size */
     font-weight: 300;
     margin-bottom: 20px;
     letter-spacing: 1px;
@@ -93,6 +98,9 @@ body {
     display: flex;
     gap: 20px;
     justify-content: center;
+    /* Added flex-wrap for better mobile display */
+    flex-wrap: wrap;
+    padding: 10px;
 }
 
 .cta-button {
@@ -103,31 +111,35 @@ body {
     border: none;
     border-radius: 30px;
     cursor: pointer;
-    transition: transform 0.3s ease;
+    transition: all 0.3s ease;
     font-weight: 500;
     letter-spacing: 1px;
     width: 150px;
+    /* Added box-shadow for better depth */
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
 .cta-button:hover {
     transform: scale(1.1);
     background-color: #e81d6f;
+    box-shadow: 0 6px 8px rgba(0, 0, 0, 0.2);
 }
 
 /* Active Button State */
 .cta-button:active {
     transform: scale(0.9);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
+/* Enhanced Mobile Responsiveness */
 @media (max-width: 768px) {
-    .main-title {
-        font-size: 2rem;
+    .button-container {
+        flex-direction: column;
+        align-items: center;
     }
-    .sub-title {
-        font-size: 1rem;
-    }
+    
     .cta-button {
-        font-size: 1rem;
-        padding: 12px 25px;
+        width: 200px; /* Slightly wider on mobile for better touch targets */
+        margin: 5px 0;
     }
 }

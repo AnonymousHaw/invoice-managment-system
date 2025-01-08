@@ -134,8 +134,10 @@ $pdf->Cell(155, 7, 'Tax (10%):', 1, 0, 'R');
 $pdf->Cell(35, 7, '$' . number_format($tax, 2), 1, 0, 'R');
 $pdf->Ln();
 
+$total = $tax+$invoice['total_amount'];
+
 $pdf->Cell(155, 7, 'Total Amount:', 1, 0, 'R');
-$pdf->Cell(35, 7, '$' . number_format($invoice['total_amount'], 2), 1, 0, 'R');
+$pdf->Cell(35, 7, '$' . number_format($total, 2), 1, 0, 'R');
 
 // Add Terms and Notes
 $pdf->Ln(20);

@@ -9,18 +9,25 @@ if (!isset($_SESSION['company_id'])) {
 
 include "config.php";
 
+$companyQuery = "SELECT * FROM companies WHERE id = ?";
+$stmt = $conn->prepare($companyQuery);
+$stmt->bind_param("i", $_SESSION['company_id']);
+$stmt->execute();
+$companyResult = $stmt->get_result();
+$companyInfo = $companyResult->fetch_assoc();
+
 // Handle invoice deletion
 if (isset($_GET['delete_invoice'])) {
     $invoiceId = intval($_GET['delete_invoice']);
     $companyId = $_SESSION['company_id'];
-    
+
     // Verify invoice belongs to company before deleting
     $verifyQuery = "SELECT id FROM invoices WHERE id = ? AND company_id = ?";
     $stmt = $conn->prepare($verifyQuery);
     $stmt->bind_param("ii", $invoiceId, $companyId);
     $stmt->execute();
     $result = $stmt->get_result();
-    
+
     if ($result->num_rows > 0) {
         // Delete invoice items first
         $deleteItemsQuery = "DELETE FROM invoice_items WHERE invoice_id = ?";
@@ -69,23 +76,46 @@ while ($row = $result->fetch_assoc()) {
 
 <!DOCTYPE html>
 <html>
+
 <head>
     <title>Invoice Management</title>
-    <link rel="stylesheet" href="css/index_style.css">
+    <link rel="stylesheet" href="css/index.css">
+    <style>
+
+    </style>
 </head>
+
 <body>
     <div class="container">
         <header>
-            <h1>Invoice Management System</h1>
-            <nav>
-                <a href="index.php">Dashboard</a>
-                <a href="clients.php">Clients</a>
-                <a href="add_invoice.php">Create Invoice</a>
-                <div class="user-info">
-                    <span>Welcome, <?php echo htmlspecialchars($_SESSION['company_name']); ?></span>
-                    <a href="logout.php" class="btn-logout">Logout</a>
+            <div class="header-left">
+                <div class="profile-dropdown">
+                    <div class="profile-section" onclick="toggleProfileDropdown()">
+                        <img src="<?php echo $companyInfo['logo_path'] ?? 'images/default-logo.png'; ?>"
+                            alt="Company Logo" class="company-logo">
+                        <div class="company-info">
+                            <span class="company-name"><?php echo htmlspecialchars($companyInfo['name']); ?></span>
+                            <span class="company-email"><?php echo htmlspecialchars($companyInfo['email']); ?></span>
+                        </div>
+                    </div>
+                    <div class="profile-dropdown-content" id="profileDropdown">
+                        <a href="edit_company.php" >Edit Company Profile</a>
+                        <a href="logout.php" >Logout</a>
+                    </div>
                 </div>
-            </nav>
+
+
+                <h1>Invoice Management System</h1>
+                <nav>
+                    <a href="index.php">Dashboard</a>
+                    <a href="clients.php">Clients</a>
+                    <a href="add_invoice.php">Create Invoice</a>
+                    <center>
+                    <div class="user-info">
+                        <span>Welcome, <?php echo htmlspecialchars($_SESSION['company_name']); ?></span>
+                    </div>
+                    </center>
+                </nav>
         </header>
 
         <!-- Success Messages -->
@@ -146,23 +176,24 @@ while ($row = $result->fetch_assoc()) {
                 </thead>
                 <tbody>
                     <?php foreach ($invoices as $invoice): ?>
-                    <tr>
-                        <td><?php echo sprintf('INV-%06d', $invoice['id']); ?></td>
-                        <td><?php echo htmlspecialchars($invoice['client_name']); ?></td>
-                        <td><?php echo date('d/m/Y', strtotime($invoice['issue_date'])); ?></td>
-                        <td><?php echo date('d/m/Y', strtotime($invoice['due_date'])); ?></td>
-                        <td>$<?php echo number_format($invoice['total_amount'], 2); ?></td>
-                        <td>
-                            <span class="status-badge status-<?php echo strtolower($invoice['status']); ?>">
-                                <?php echo ucfirst($invoice['status']); ?>
-                            </span>
-                        </td>
-                        <td class="action-buttons">
-                            <a href="edit_invoice.php?id=<?php echo $invoice['id']; ?>" class="btn btn-edit">Edit</a>
-                            <a href="generate_pdf.php?id=<?php echo $invoice['id']; ?>" class="btn btn-pdf">PDF</a>
-                            <a href="javascript:void(0)" onclick="confirmDelete(<?php echo $invoice['id']; ?>)" class="btn btn-delete">Delete</a>
-                        </td>
-                    </tr>
+                        <tr>
+                            <td><?php echo sprintf('INV-%06d', $invoice['id']); ?></td>
+                            <td><?php echo htmlspecialchars($invoice['client_name']); ?></td>
+                            <td><?php echo date('d/m/Y', strtotime($invoice['issue_date'])); ?></td>
+                            <td><?php echo date('d/m/Y', strtotime($invoice['due_date'])); ?></td>
+                            <td>$<?php echo number_format($invoice['total_amount'], 2); ?></td>
+                            <td>
+                                <span class="status-badge status-<?php echo strtolower($invoice['status']); ?>">
+                                    <?php echo ucfirst($invoice['status']); ?>
+                                </span>
+                            </td>
+                            <td class="action-buttons">
+                                <a href="edit_invoice.php?id=<?php echo $invoice['id']; ?>" class="btn btn-edit">Edit</a>
+                                <a href="generate_pdf.php?id=<?php echo $invoice['id']; ?>" class="btn btn-pdf">PDF</a>
+                                <a href="javascript:void(0)" onclick="confirmDelete(<?php echo $invoice['id']; ?>)"
+                                    class="btn btn-delete">Delete</a>
+                            </td>
+                        </tr>
                     <?php endforeach; ?>
                 </tbody>
             </table>
@@ -170,11 +201,30 @@ while ($row = $result->fetch_assoc()) {
     </div>
 
     <script>
-    function confirmDelete(invoiceId) {
-        if (confirm('Are you sure you want to delete this invoice?')) {
-            window.location.href = `index.php?delete_invoice=${invoiceId}`;
+        function toggleProfileDropdown() {
+            const dropdownContent = document.getElementById('profileDropdown');
+            dropdownContent.classList.toggle('active');
         }
-    }
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function (event) {
+            const dropdownContent = document.getElementById('profileDropdown');
+            const profileSection = document.querySelector('.profile-section');
+
+            if (!profileSection.contains(event.target) && !dropdownContent.contains(event.target)) {
+                dropdownContent.classList.remove('active');
+            }
+        });
+
+
+        // Your existing confirmDelete function remains the same
+        function confirmDelete(invoiceId) {
+            if (confirm('Are you sure you want to delete this invoice?')) {
+                window.location.href = `index.php?delete_invoice=${invoiceId}`;
+            }
+        }
     </script>
+
 </body>
+
 </html>
