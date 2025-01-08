@@ -16,6 +16,17 @@ $stmt->execute();
 $companyResult = $stmt->get_result();
 $companyInfo = $companyResult->fetch_assoc();
 
+// Search functionality
+$searchQuery = '';
+if (isset($_GET['search'])) {
+    $searchQuery = '%' . $_GET['search'] . '%';
+}
+
+// Pagination functionality
+$limit = 10; // Number of invoices per page
+$page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+$offset = ($page - 1) * $limit;
+
 // Handle invoice deletion
 if (isset($_GET['delete_invoice'])) {
     $invoiceId = intval($_GET['delete_invoice']);
@@ -50,17 +61,41 @@ if (isset($_GET['delete_invoice'])) {
     }
 }
 
-// Fetch invoices for the logged-in company
+// Fetch total invoices for pagination
+$searchQueryForPagination = $searchQuery ? "AND (i.invoice_number LIKE ? OR c.name LIKE ?)" : ' '; // Use `c.name` instead of `name`
+$stmt = $conn->prepare("SELECT COUNT(*) as total 
+                       FROM invoices i
+                       LEFT JOIN clients c ON i.client_id = c.id 
+                       WHERE i.company_id = ? $searchQueryForPagination");
+
+if ($searchQuery) {
+    $stmt->bind_param("iss", $_SESSION['company_id'], $searchQuery, $searchQuery); // Adjusted parameters
+} else {
+    $stmt->bind_param("i", $_SESSION['company_id']);
+}
+
+$stmt->execute();
+$stmt->execute();
+$result = $stmt->get_result();
+$row = $result->fetch_assoc();
+$totalInvoices = $row['total'];
+$totalPages = ceil($totalInvoices / $limit);
+
+// Fetch invoices with pagination and search
 $query = "
     SELECT i.*, c.name AS client_name 
     FROM invoices i 
     LEFT JOIN clients c ON i.client_id = c.id 
-    WHERE i.company_id = ?
-    ORDER BY i.created_at DESC
+    WHERE i.company_id = ? $searchQueryForPagination
+    ORDER BY i.created_at DESC 
+    LIMIT ? OFFSET ?
 ";
-
 $stmt = $conn->prepare($query);
-$stmt->bind_param("i", $_SESSION['company_id']);
+if ($searchQuery) {
+    $stmt->bind_param("issii", $_SESSION['company_id'], $searchQuery, $searchQuery, $limit, $offset);
+} else {
+    $stmt->bind_param("iii", $_SESSION['company_id'], $limit, $offset);
+}
 $stmt->execute();
 $result = $stmt->get_result();
 
@@ -79,10 +114,7 @@ while ($row = $result->fetch_assoc()) {
 
 <head>
     <title>Invoice Management</title>
-    <link rel="stylesheet" href="css/index.css">
-    <style>
-
-    </style>
+    <link rel="stylesheet" href="css/index_style.css">
 </head>
 
 <body>
@@ -91,31 +123,28 @@ while ($row = $result->fetch_assoc()) {
             <div class="header-left">
                 <div class="profile-dropdown">
                     <div class="profile-section" onclick="toggleProfileDropdown()">
-                        <img src="<?php echo $companyInfo['logo_path'] ?? 'images/default-logo.png'; ?>"
-                            alt="Company Logo" class="company-logo">
+                        <img src="<?php echo $companyInfo['logo_path'] ?? 'images/default-logo.png'; ?>" alt="Company Logo" class="company-logo">
                         <div class="company-info">
                             <span class="company-name"><?php echo htmlspecialchars($companyInfo['name']); ?></span>
                             <span class="company-email"><?php echo htmlspecialchars($companyInfo['email']); ?></span>
                         </div>
                     </div>
                     <div class="profile-dropdown-content" id="profileDropdown">
-                        <a href="edit_company.php" >Edit Company Profile</a>
-                        <a href="logout.php" >Logout</a>
+                        <a href="edit_company.php">Edit Company Profile</a>
+                        <a href="logout.php">Logout</a>
                     </div>
                 </div>
-
 
                 <h1>Invoice Management System</h1>
                 <nav>
                     <a href="index.php">Dashboard</a>
                     <a href="clients.php">Clients</a>
                     <a href="add_invoice.php">Create Invoice</a>
-                    <center>
                     <div class="user-info">
                         <span>Welcome, <?php echo htmlspecialchars($_SESSION['company_name']); ?></span>
                     </div>
-                    </center>
                 </nav>
+            </div>
         </header>
 
         <!-- Success Messages -->
@@ -156,6 +185,14 @@ while ($row = $result->fetch_assoc()) {
             </div>
         <?php endif; ?>
 
+        <!-- Search Bar -->
+        <div class="search-bar">
+            <form method="GET" action="index.php">
+                <input type="text" name="search" placeholder="Search by invoice number or client name" >
+                <button type="submit" class="btn-primary">Search</button>
+            </form>
+        </div>
+
         <!-- Invoice Table -->
         <?php if (empty($invoices)): ?>
             <div class="no-records">
@@ -190,14 +227,20 @@ while ($row = $result->fetch_assoc()) {
                             <td class="action-buttons">
                                 <a href="edit_invoice.php?id=<?php echo $invoice['id']; ?>" class="btn btn-edit">Edit</a>
                                 <a href="generate_pdf.php?id=<?php echo $invoice['id']; ?>" class="btn btn-pdf">PDF</a>
-                                <a href="javascript:void(0)" onclick="confirmDelete(<?php echo $invoice['id']; ?>)"
-                                    class="btn btn-delete">Delete</a>
+                                <a href="javascript:void(0)" onclick="confirmDelete(<?php echo $invoice['id']; ?>)" class="btn btn-delete">Delete</a>
                             </td>
                         </tr>
                     <?php endforeach; ?>
                 </tbody>
             </table>
         <?php endif; ?>
+
+        <!-- Pagination -->
+        <div class="pagination">
+            <?php for ($i = 1; $i <= $totalPages; $i++): ?>
+                <a href="index.php?page=<?php echo $i; ?>&search=<?php echo urlencode($searchQuery); ?>" class="page-link <?php echo $i == $page ? 'active' : ''; ?>"><?php echo $i; ?></a>
+            <?php endfor; ?>
+        </div>
     </div>
 
     <script>
@@ -216,8 +259,7 @@ while ($row = $result->fetch_assoc()) {
             }
         });
 
-
-        // Your existing confirmDelete function remains the same
+        // Confirm delete function
         function confirmDelete(invoiceId) {
             if (confirm('Are you sure you want to delete this invoice?')) {
                 window.location.href = `index.php?delete_invoice=${invoiceId}`;
